@@ -35,7 +35,7 @@ impl GameState {
 
         self.world
             .insert(Camera::new(SCREEN_SIZE[0] as f32 / SCREEN_SIZE[1] as f32));
-        self.world.insert(DeltaTime(0.05));
+        // self.world.insert(DeltaTime(0.05));
         self.world.insert(InputHandler::default());
         self.world.insert(StageTick {
             current_spent: 0.0,
@@ -97,8 +97,8 @@ impl GameState {
     }
 
     fn update_delta_time(&mut self, dt: f32) {
-        let mut delta = self.world.write_resource::<DeltaTime>();
-        *delta = DeltaTime(dt);
+        // let mut delta = self.world.write_resource::<DeltaTime>();
+        // *delta = DeltaTime(dt);
 
         let mut stage = self.world.write_resource::<StageTick>();
         stage.current_spent += dt;

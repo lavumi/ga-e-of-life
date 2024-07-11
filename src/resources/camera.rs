@@ -15,11 +15,7 @@ impl View {
         self.eye.y += delta[1];
         self.eye.z += delta[2];
 
-        if self.eye.z < 2.0 {
-            self.eye.z = 2.0;
-        } else if self.eye.z > 50.0 {
-            self.eye.z = 50.0;
-        }
+        self.eye.z = self.eye.z.clamp(2.0, 50.0);
         self.target.x += delta[0];
         self.target.y += delta[1];
 

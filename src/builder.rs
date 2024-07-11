@@ -27,7 +27,6 @@ pub fn cell_grid(world: &mut World) {
                 .with(Cell {
                     index,
                     alive: false,
-                    next: false,
                 }) // Initially all cells are off
                 .build();
             index += 1;
