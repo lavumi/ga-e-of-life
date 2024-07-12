@@ -3,8 +3,6 @@ use std::iter;
 use std::sync::Arc;
 use wgpu::RequestAdapterOptions;
 use winit::dpi::PhysicalSize;
-
-use crate::configs;
 use winit::window::Window;
 
 use crate::renderer::font_manager::FontManager;
@@ -12,9 +10,10 @@ use crate::renderer::gpu_resource_manager::GPUResourceManager;
 use crate::renderer::pipeline_manager::PipelineManager;
 use crate::renderer::{texture, TextAttributes, TileAttributes};
 
-pub struct RenderState<'window> {
+pub struct RenderContext {
+    pub window: Arc<Window>,
     pub device: wgpu::Device,
-    surface: wgpu::Surface<'window>,
+    pub surface: wgpu::Surface<'static>,
 
     pub queue: wgpu::Queue,
     pub config: wgpu::SurfaceConfiguration,
@@ -22,108 +21,16 @@ pub struct RenderState<'window> {
     pub gpu_resource_manager: GPUResourceManager,
     pub pipeline_manager: PipelineManager,
 
-    font_manager: FontManager,
+    pub font_manager: FontManager,
 
-    color: wgpu::Color,
-    depth_texture: texture::TextureViewAndSampler,
+    pub color: wgpu::Color,
+    pub depth_texture: texture::TextureViewAndSampler,
 
-    aspect_ratio: f32,
-    viewport_data: [f32; 6],
+    pub aspect_ratio: f32,
+    pub viewport_data: [f32; 6],
 }
-impl<'window> RenderState<'window> {
-    pub fn new(window: Arc<Window>) -> RenderState<'window> {
-        let mut rs = pollster::block_on(RenderState::new_async(window));
-        pollster::block_on(rs.init_resources());
-        rs
-    }
-    async fn new_async(window: Arc<Window>) -> RenderState<'window> {
-        let size = PhysicalSize::new(configs::SCREEN_SIZE[0], configs::SCREEN_SIZE[1]);
 
-        // The instance is a handle to our GPU
-        // BackendBit::PRIMARY => Vulkan + Metal + DX12 + Browser WebGPU
-        let instance = wgpu::Instance::default();
-        let surface = instance.create_surface(Arc::clone(&window)).unwrap();
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
-                compatible_surface: Some(&surface),
-                force_fallback_adapter: false,
-            })
-            .await
-            .unwrap();
-        let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::empty(),
-                    // WebGL doesn't support all of wgpu`s features, so if
-                    // we're building for the web we'll have to disable some.
-                    required_limits: if cfg!(target_arch = "wasm32") {
-                        wgpu::Limits::downlevel_webgl2_defaults()
-                    } else {
-                        wgpu::Limits::default()
-                    },
-                },
-                // Some(&std::path::Path::new("trace")), // Trace path
-                None,
-            )
-            .await
-            .unwrap();
-
-        let surface_caps = surface.get_capabilities(&adapter);
-        let surface_format = surface_caps
-            .formats
-            .iter()
-            .copied()
-            // .filter(|f| f.describe().srgb)
-            .next()
-            .unwrap_or(surface_caps.formats[0]);
-        let config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface_format,
-            width: size.width,
-            height: size.height,
-            present_mode: surface_caps.present_modes[0],
-            desired_maximum_frame_latency: 0,
-            alpha_mode: surface_caps.alpha_modes[0],
-            view_formats: vec![],
-        };
-        surface.configure(&device, &config);
-
-        let depth_texture =
-            texture::TextureViewAndSampler::create_depth_texture(&device, &config, "depth_texture");
-        let color = wgpu::Color {
-            r: 0.0,
-            g: 0.0,
-            b: 0.0,
-            a: 1.0,
-        };
-
-        let aspect_ratio = size.width as f32 / size.height as f32;
-        let viewport_data = [0., 0., size.width as f32, size.height as f32, 0., 1.];
-
-        let mut gpu_resource_manager = GPUResourceManager::default();
-        gpu_resource_manager.initialize(&device);
-        let mut pipeline_manager = PipelineManager::default();
-        pipeline_manager.init_pipelines(&device, config.format, &gpu_resource_manager);
-
-        let font_manager = FontManager::default();
-
-        RenderState {
-            device,
-            surface,
-            queue,
-            config,
-            gpu_resource_manager,
-            pipeline_manager,
-            color,
-            depth_texture,
-            aspect_ratio,
-            viewport_data,
-            font_manager,
-        }
-    }
-
+impl RenderContext {
     pub async fn init_resources(&mut self) {
         self.gpu_resource_manager
             .init_atlas(&self.device, &self.queue);
@@ -159,7 +66,6 @@ impl<'window> RenderState<'window> {
             self.surface.configure(&self.device, &self.config);
 
             let aspect_ratio = new_size.width as f32 / new_size.height as f32;
-
             if (self.aspect_ratio - aspect_ratio).abs() > 0.001 {
                 if self.aspect_ratio < aspect_ratio {
                     //width is bigger
@@ -183,6 +89,8 @@ impl<'window> RenderState<'window> {
                 ];
             }
         }
+        self.window.request_redraw();
+        log::info!("request redraw called in resize");
     }
     pub fn update_camera_buffer(&self, camera_uniform: [[f32; 4]; 4]) {
         let camera_buffer = self.gpu_resource_manager.get_buffer("camera_matrix");
@@ -276,6 +184,8 @@ impl<'window> RenderState<'window> {
 
         self.queue.submit(iter::once(encoder.finish()));
         output.present();
+
+        self.window.request_redraw();
         Ok(())
     }
 

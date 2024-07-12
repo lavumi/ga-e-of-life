@@ -1,79 +1,36 @@
-use crate::configs;
 use crate::game_state::GameState;
 use crate::renderer::*;
 use instant::Instant;
-use std::sync::Arc;
 use wgpu::SurfaceError;
 use winit::application::ApplicationHandler;
-use winit::dpi::LogicalSize;
-use winit::event_loop::ActiveEventLoop;
+use winit::dpi::PhysicalSize;
+use winit::event::*;
+use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::WindowId;
-use winit::{event::*, window::Window};
 
-pub struct Application<'window> {
-    gs: GameState,
-    rs: Option<RenderState<'window>>,
+pub struct Application {
+    game_state: GameState,
+    render_context: RenderContextType,
 
-    window: Option<Arc<Window>>,
-
+    // window: Option<Arc<Window>>,
+    screen_size: PhysicalSize<u32>,
     prev_time: Instant,
 }
 
-impl Default for Application<'_> {
-    fn default() -> Self {
-        let mut gs = GameState::default();
-        gs.init();
-        Application {
-            gs,
-            rs: None,
-            window: None,
-            prev_time: Instant::now(),
+impl ApplicationHandler<RenderContext> for Application {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if let RenderContextType::Builder(builder) = &mut self.render_context {
+            builder.build_and_send(event_loop);
         }
     }
-}
 
-impl<'window> ApplicationHandler for Application<'window> {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if self.window.is_none() {
-            let width = configs::SCREEN_SIZE[0];
-            let height = configs::SCREEN_SIZE[1];
-            let win_attr = Window::default_attributes()
-                .with_title("lavumi engine")
-                .with_inner_size(LogicalSize::new(width, height));
-            // use Arc.
-            let window = Arc::new(
-                event_loop
-                    .create_window(win_attr)
-                    .expect("create window err."),
-            );
-            #[cfg(target_arch = "wasm32")]
-            {
-                // Winit prevents sizing with CSS, so we have to set
-                // the size manually when on web.
-                use winit::dpi::PhysicalSize;
-                window.set_min_inner_size(Some(PhysicalSize::new(
-                    configs::SCREEN_SIZE[0],
-                    configs::SCREEN_SIZE[1],
-                )));
-
-                use winit::platform::web::WindowExtWebSys;
-                web_sys::window()
-                    .and_then(|win| win.document())
-                    .and_then(|doc| {
-                        let dst = doc.get_element_by_id("wgpu-wasm")?;
-                        let canvas = web_sys::Element::from(window.canvas()?);
-                        canvas.set_id("wasm-canvas");
-                        dst.append_child(&canvas).ok()?;
-                        Some(())
-                    })
-                    .expect("Couldn't append canvas to document body.");
-            }
-
-            self.window = Some(window.clone());
-            self.prev_time = Instant::now();
-            let rs = RenderState::new(window);
-            self.rs = Some(rs);
-        }
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, graphics: RenderContext) {
+        self.render_context = RenderContextType::Graphics(graphics);
+        //이게 맞아?
+        //여기서 세팅되고 redraw_request 가 호출이 안되서 생기는 문제인데
+        //더군다나 resize 도 호출이 이상하게 되는듯
+        //resize 2번 후에 user_event 가 호출된다
+        self.resize(self.screen_size);
     }
 
     fn window_event(
@@ -86,22 +43,15 @@ impl<'window> ApplicationHandler for Application<'window> {
             WindowEvent::CursorMoved { .. }
             | WindowEvent::MouseWheel { .. }
             | WindowEvent::MouseInput { .. } => {
-                self.gs.handle_mouse_input(event);
+                self.game_state.handle_mouse_input(event);
             }
-
             WindowEvent::CloseRequested => {
-                // macOS err: https://github.com/rust-windowing/winit/issues/3668
-                // This will be fixed as winit 0.30.1.
                 event_loop.exit();
             }
             WindowEvent::Resized(new_size) => {
-                if let (Some(rs), Some(window)) = (self.rs.as_mut(), self.window.as_ref()) {
-                    rs.resize(new_size);
-                    window.request_redraw();
-                }
+                self.resize(new_size);
             }
             WindowEvent::RedrawRequested => {
-                // log::info!("update called");
                 self.update();
                 match self.render() {
                     Ok(_) => {}
@@ -112,10 +62,6 @@ impl<'window> ApplicationHandler for Application<'window> {
                     Err(SurfaceError::OutOfMemory) => {}
                     Err(SurfaceError::Timeout) => log::warn!("Surface timeout"),
                 }
-
-                if let Some(window) = self.window.as_ref() {
-                    window.request_redraw();
-                }
                 // }
             }
             _ => (),
@@ -123,7 +69,21 @@ impl<'window> ApplicationHandler for Application<'window> {
     }
 }
 
-impl Application<'_> {
+impl Application {
+    pub(crate) fn new(event_loop: &EventLoop<RenderContext>) -> Self {
+        let mut gs = GameState::default();
+        gs.init();
+
+        Self {
+            game_state: gs,
+            render_context: RenderContextType::Builder(RenderContextBuilder::new(
+                event_loop.create_proxy(),
+            )),
+            prev_time: Instant::now(),
+            screen_size: PhysicalSize::default(),
+        }
+    }
+
     fn update_delta_time(&mut self) -> f32 {
         let elapsed_time = self.prev_time.elapsed().as_millis() as f32 / 1000.0;
         self.prev_time = Instant::now();
@@ -132,36 +92,35 @@ impl Application<'_> {
 
     fn update(&mut self) {
         let dt = self.update_delta_time();
-        self.gs.update(dt);
+        self.game_state.update(dt);
     }
+
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        if let Some(rs) = self.rs.as_mut() {
-            //1. update camera
-            let camera_uniform = self.gs.get_camera_uniform();
-            rs.update_camera_buffer(camera_uniform);
+        let RenderContextType::Graphics(render_context) = &mut self.render_context else {
+            return Err(SurfaceError::Lost);
+        };
 
-            // //2. update meshes
-            let instances = self.gs.get_cell_instance();
-            rs.update_mesh_instance(instances);
+        //1. update camera
+        let camera_uniform = self.game_state.get_camera_uniform();
+        render_context.update_camera_buffer(camera_uniform);
 
-            let instances = self.gs.get_text_data();
-            rs.update_text_instance(instances);
-            rs.render()
-        } else {
-            Err(SurfaceError::Lost)
-        }
+        // //2. update meshes
+        let instances = self.game_state.get_cell_instance();
+        render_context.update_mesh_instance(instances);
+
+        let instances = self.game_state.get_text_data();
+        render_context.update_text_instance(instances);
+        render_context.render()
     }
-    // #[allow(unused_variables)]
-    // fn input(&mut self, event: &WindowEvent) -> bool {
-    //     match event {
-    //         WindowEvent::KeyboardInput { input, .. } => self.gs.handle_keyboard_input(input),
-    //         WindowEvent::MouseInput { .. } => self.gs.handle_mouse_input(event),
-    //         WindowEvent::CursorMoved { .. } => self.gs.handle_mouse_input(event),
-    //         WindowEvent::MouseWheel { .. } => self.gs.handle_mouse_input(event),
-    //
-    //         _ => false,
-    //     }
-    // }
+
+    fn resize(&mut self, size: PhysicalSize<u32>) {
+        let RenderContextType::Graphics(render_context) = &mut self.render_context else {
+            log::info!("resize called but graphics not initialized");
+            self.screen_size = size;
+            return;
+        };
+        render_context.resize(size);
+    }
 
     #[allow(unused)]
     pub fn get_data_from_wasm(&self) -> (i32, i32) {

@@ -6,8 +6,8 @@ use cgmath::SquareMatrix;
 use wgpu::util::DeviceExt;
 use wgpu::{BindGroup, BindGroupLayout, Buffer, Device, Queue, RenderPass};
 
-use crate::renderer::builder::make_tile_mesh;
 use crate::renderer::mesh::{InstanceTileRaw, Mesh};
+use crate::renderer::mesh_factory::make_tile_mesh;
 use crate::renderer::texture::TextureViewAndSampler;
 
 #[derive(Default)]

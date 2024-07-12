@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use specs::{Join, World, WorldExt};
 
-use crate::builder::*;
+use crate::entity_builder::*;
 
 use crate::components::*;
 use crate::configs::SCREEN_SIZE;
