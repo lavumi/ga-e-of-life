@@ -30,7 +30,7 @@ impl ApplicationHandler<RenderContext> for Application {
         //여기서 세팅되고 redraw_request 가 호출이 안되서 생기는 문제인데
         //더군다나 resize 도 호출이 이상하게 되는듯
         //resize 2번 후에 user_event 가 호출된다
-        self.resize(self.screen_size);
+        self.render().unwrap();
     }
 
     fn window_event(
@@ -49,6 +49,7 @@ impl ApplicationHandler<RenderContext> for Application {
                 event_loop.exit();
             }
             WindowEvent::Resized(new_size) => {
+                log::info!("{:?}", event);
                 self.resize(new_size);
             }
             WindowEvent::RedrawRequested => {
@@ -119,7 +120,9 @@ impl Application {
             self.screen_size = size;
             return;
         };
-        render_context.resize(size);
+        //todo 이거 뭔가 버그 있는거 같음
+        //wasm 에서 계속 크기가 2배로 커지네
+        // render_context.resize(size);
     }
 
     #[allow(unused)]

@@ -124,7 +124,7 @@ impl PipelineManager {
             buffers: &[Vertex::desc(), InstanceSimpleTileRaw::desc()],
             sample_count: 1,
             sampler_mask: 0,
-            alpha_to_coverage_enabled: true,
+            alpha_to_coverage_enabled: false,
             layouts: vec![
                 "camera_bind_group_layout".to_string(),
                 "texture_bind_group_layout".to_string(),
@@ -152,7 +152,7 @@ impl PipelineManager {
             buffers: &[Vertex::desc(), InstanceColorTileRaw::desc()],
             sample_count: 1,
             sampler_mask: 0,
-            alpha_to_coverage_enabled: true,
+            alpha_to_coverage_enabled: false,
             layouts: vec![
                 "camera_bind_group_layout".to_string(),
                 "texture_bind_group_layout".to_string(),

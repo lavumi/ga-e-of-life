@@ -133,7 +133,6 @@ pub fn create_render_context(
             view_formats: vec![],
         };
         surface.configure(&device, &config);
-
         let depth_texture = crate::renderer::texture::TextureViewAndSampler::create_depth_texture(
             &device,
             &config,

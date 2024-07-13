@@ -20,11 +20,16 @@ pub async fn wasm_start() {
     start().await.unwrap_throw();
 }
 
+// First up let's take a look of binding `console.log` manually, without the
+// help of `web_sys`. Here we're writing the `#[wasm_bindgen]` annotations
+// manually ourselves, and the correctness of our program relies on the
+// correctness of these annotations!
+
 pub async fn start() -> Result<(), Box<dyn Error>> {
     cfg_if::cfg_if! {
         if #[cfg(target_arch = "wasm32")] {
             std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-            console_log::init_with_level(log::Level::Warn).expect("Couldn't initialize logger");
+            console_log::init_with_level(log::Level::Info).expect("Couldn't initialize logger");
 
             // #[wasm_bindgen(module = "/defined-in-js.js")]
             // extern "C" {
