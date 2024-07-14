@@ -6,13 +6,12 @@ use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
 use winit::event::*;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
+use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::WindowId;
 
 pub struct Application {
     game_state: GameState,
     render_context: RenderContextType,
-
-    // window: Option<Arc<Window>>,
     screen_size: PhysicalSize<u32>,
     prev_time: Instant,
 }
@@ -40,6 +39,21 @@ impl ApplicationHandler<RenderContext> for Application {
         event: WindowEvent,
     ) {
         match event {
+            WindowEvent::KeyboardInput { event, .. } => {
+                if event.state != ElementState::Pressed {
+                    return;
+                }
+                match event.physical_key {
+                    PhysicalKey::Code(KeyCode::KeyW) => {
+                        self.game_state.start_auto_playing(0.1);
+                    }
+                    PhysicalKey::Code(KeyCode::KeyQ) => {
+                        self.game_state.restart();
+                    }
+                    _ => {}
+                }
+            }
+
             WindowEvent::CursorMoved { .. }
             | WindowEvent::MouseWheel { .. }
             | WindowEvent::MouseInput { .. } => {
@@ -94,6 +108,9 @@ impl Application {
     fn update(&mut self) {
         let dt = self.update_delta_time();
         self.game_state.update(dt);
+
+        #[cfg(target_arch = "wasm32")]
+        self.check_wasm_input();
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
@@ -115,7 +132,7 @@ impl Application {
     }
 
     fn resize(&mut self, size: PhysicalSize<u32>) {
-        let RenderContextType::Graphics(render_context) = &mut self.render_context else {
+        let RenderContextType::Graphics(_) = &mut self.render_context else {
             log::info!("resize called but graphics not initialized");
             self.screen_size = size;
             return;
@@ -125,8 +142,27 @@ impl Application {
         // render_context.resize(size);
     }
 
-    #[allow(unused)]
-    pub fn get_data_from_wasm(&self) -> (i32, i32) {
-        (0, 0)
+    #[cfg(target_arch = "wasm32")]
+    pub fn check_wasm_input(&mut self) {
+        use crate::js_binding::JS_BINDING;
+        let start_btn = JS_BINDING.get_state(0);
+        if start_btn {
+            self.start_auto_playing(0.1);
+        }
+
+        let reset_btn = JS_BINDING.get_state(1);
+        if reset_btn {
+            self.reset_game();
+        }
+        JS_BINDING.reset();
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn start_auto_playing(&mut self, tick: f32) {
+        self.game_state.start_auto_playing(tick);
+    }
+    #[cfg(target_arch = "wasm32")]
+    pub fn reset_game(&mut self) {
+        self.game_state.restart();
     }
 }

@@ -3,10 +3,10 @@ use crate::configs;
 use specs::{Builder, World, WorldExt};
 
 pub fn cell_grid(world: &mut World) {
-    let x_min = -configs::GRID_SIZE_HALF[0];
-    let x_max = configs::GRID_SIZE_HALF[0] + 1;
-    let y_min = -configs::GRID_SIZE_HALF[1];
-    let y_max = configs::GRID_SIZE_HALF[1] + 1;
+    let x_min = -(configs::GRID_SIZE_HALF[0] as i32);
+    let x_max = configs::GRID_SIZE_HALF[0] as i32 + 1;
+    let y_min = -(configs::GRID_SIZE_HALF[1] as i32);
+    let y_max = configs::GRID_SIZE_HALF[1] as i32 + 1;
 
     let mut entity_map = vec![];
     let mut index = 0;
@@ -20,7 +20,6 @@ pub fn cell_grid(world: &mut World) {
                 })
                 .with(Transform {
                     position: [x as f32, y as f32, 0.0],
-                    // position: [0.,0.,0.],
                     size: [0.85, 0.85],
                     rotation: 0.,
                 })

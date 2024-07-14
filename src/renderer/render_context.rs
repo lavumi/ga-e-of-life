@@ -54,6 +54,7 @@ impl RenderContext {
     pub fn set_clear_color(&mut self, color: wgpu::Color) {
         self.color = color;
     }
+    #[allow(unused)]
     pub fn resize(&mut self, new_size: PhysicalSize<u32>) {
         if new_size.width > 0 && new_size.height > 0 {
             self.config.width = new_size.width;

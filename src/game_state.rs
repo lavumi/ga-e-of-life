@@ -6,16 +6,23 @@ use specs::{Join, World, WorldExt};
 use crate::entity_builder::*;
 
 use crate::components::*;
-use crate::configs::SCREEN_SIZE;
 use crate::renderer::*;
 use crate::resources::Camera;
 use crate::resources::*;
 use crate::system;
 use crate::system::UnifiedDispatcher;
 
+enum Phase {
+    Ready,
+    Play,
+    // Step,
+    // Edit,
+}
+
 pub struct GameState {
     pub world: World,
     dispatcher: Box<dyn UnifiedDispatcher + 'static>,
+    phase: Phase,
 }
 
 impl Default for GameState {
@@ -23,6 +30,7 @@ impl Default for GameState {
         GameState {
             world: World::new(),
             dispatcher: system::build(),
+            phase: Phase::Ready,
         }
     }
 }
@@ -33,25 +41,19 @@ impl GameState {
         self.world.register::<Tile>();
         self.world.register::<Cell>();
 
-        self.world
-            .insert(Camera::new(SCREEN_SIZE[0] as f32 / SCREEN_SIZE[1] as f32));
-        // self.world.insert(DeltaTime(0.05));
+        self.world.insert(Camera::new(1.33333));
         self.world.insert(InputHandler::default());
-        self.world.insert(StageTick {
-            current_spent: 0.0,
-            stage_tick: 0.3,
-        });
+        self.world.insert(StageTick::default());
 
-        // self.world.register::<>();
         self.init_game();
     }
 
     fn init_game(&mut self) {
+        self.phase = Phase::Ready;
         // agent(&mut self.world);
         cell_grid(&mut self.world);
 
         let positions_to_set_alive = vec![
-            // y = 0일 때, x = -5부터 6까지
             [-5.0, 0.0],
             [-4.0, 0.0],
             [-3.0, 0.0],
@@ -64,7 +66,6 @@ impl GameState {
             [4.0, 0.0],
             [5.0, 0.0],
             [6.0, 0.0],
-            // y = 2일 때, x = -3부터 4까지
             [-3.0, 2.0],
             [-2.0, 2.0],
             [-1.0, 2.0],
@@ -97,11 +98,15 @@ impl GameState {
     }
 
     fn update_delta_time(&mut self, dt: f32) {
-        // let mut delta = self.world.write_resource::<DeltaTime>();
-        // *delta = DeltaTime(dt);
-
-        let mut stage = self.world.write_resource::<StageTick>();
-        stage.current_spent += dt;
+        match self.phase {
+            Phase::Ready => {}
+            Phase::Play => {
+                let mut stage = self.world.write_resource::<StageTick>();
+                stage.current_spent += dt;
+            }
+            // Phase::Step => {}
+            // Phase::Edit => {}
+        }
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -188,7 +193,14 @@ impl GameState {
     }
 
     #[allow(unused)]
-    pub fn force_restart(&mut self) {
+    pub fn restart(&mut self) {
         self.world.delete_all();
+        self.init_game();
+    }
+
+    pub fn start_auto_playing(&mut self, tick: f32) {
+        let mut stage_tick = self.world.write_resource::<StageTick>();
+        stage_tick.stage_tick = tick;
+        self.phase = Phase::Play;
     }
 }

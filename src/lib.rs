@@ -10,6 +10,7 @@ mod components;
 mod configs;
 mod entity_builder;
 mod game_state;
+mod js_binding;
 mod renderer;
 mod resources;
 mod system;
@@ -19,11 +20,6 @@ mod system;
 pub async fn wasm_start() {
     start().await.unwrap_throw();
 }
-
-// First up let's take a look of binding `console.log` manually, without the
-// help of `web_sys`. Here we're writing the `#[wasm_bindgen]` annotations
-// manually ourselves, and the correctness of our program relies on the
-// correctness of these annotations!
 
 pub async fn start() -> Result<(), Box<dyn Error>> {
     cfg_if::cfg_if! {

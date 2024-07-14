@@ -1,6 +1,7 @@
 use specs::{Entities, Entity, Join, Read, System, Write, WriteStorage};
 
 use crate::components::Cell;
+use crate::configs;
 use crate::resources::StageTick;
 
 pub struct UpdateCells;
@@ -21,15 +22,14 @@ impl<'a> System<'a> for UpdateCells {
         tick.current_spent = 0.0;
 
         //fix fxx hard code
-        let width = 77;
-        let height = 59;
+        let width = configs::GRID_SIZE_HALF[0] * 2 + 1;
+        let height = configs::GRID_SIZE_HALF[1] * 2 + 1;
         let total_cells = width * height;
 
         let mut next_states = vec![false; total_cells];
 
         for cell in (&cells).join() {
             let index = cell.index;
-
             let neighbors = [
                 index.wrapping_sub((height + 1) as u32), // 상좌
                 index.wrapping_sub(height as u32),       // 상

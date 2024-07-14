@@ -45,32 +45,15 @@ impl Default for Camera {
 }
 
 impl Camera {
-    #[allow(unused)]
-    pub fn new_orthographic(height: u32) -> Self {
-        let height = height as f32;
-        let width = SCREEN_SIZE[0] as f32 / SCREEN_SIZE[1] as f32 * height;
-        let near = 0.1;
-        let far = 100.0;
-        let proj = cgmath::ortho(-width, width, -height, height, near, far);
-        let magic = [1., 1.];
-        Self {
-            view: View {
-                eye: (0.0, 0.0, 30.0).into(),
-                target: (0.0, 0.0, 0.0).into(),
-                up: Vector3::unit_y(),
-            },
-            proj,
-            magic,
-        }
-    }
-
     pub fn new(aspect_ratio: f32) -> Self {
         let fov = cgmath::Deg(60.0);
         let near = 0.1;
         let far = 100.0;
         let proj = cgmath::perspective(fov, aspect_ratio, near, far);
 
-        let fov_rad = std::f32::consts::PI * 0.5;
+        let fov_rad = std::f32::consts::PI * 0.33333;
+        //이게 뭐지???
+        //과거의 나 대체 무슨 생각이었냐!
         let magic = [
             2.0 * f32::tan(fov_rad * 0.5 * aspect_ratio) / SCREEN_SIZE[0] as f32 * 0.5,
             -2.0 * f32::tan(fov_rad * 0.5) / SCREEN_SIZE[1] as f32 * 0.5,
@@ -99,6 +82,25 @@ impl Camera {
         ];
 
         self.view.move_by(world_delta)
+    }
+
+    #[allow(unused)]
+    pub fn new_orthographic(height: u32) -> Self {
+        let height = height as f32;
+        let width = SCREEN_SIZE[0] as f32 / SCREEN_SIZE[1] as f32 * height;
+        let near = 0.1;
+        let far = 100.0;
+        let proj = cgmath::ortho(-width, width, -height, height, near, far);
+        let magic = [1., 1.];
+        Self {
+            view: View {
+                eye: (0.0, 0.0, 30.0).into(),
+                target: (0.0, 0.0, 0.0).into(),
+                up: Vector3::unit_y(),
+            },
+            proj,
+            magic,
+        }
     }
 
     pub fn get_view_proj(&self) -> [[f32; 4]; 4] {
