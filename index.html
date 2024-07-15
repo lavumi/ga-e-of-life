@@ -62,6 +62,33 @@
             left: 50%;
             transform: translate(-50%, 0%);
         }
+
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        #wgpu-wasm {
+            position: relative;
+        }
+
+        #wasm-canvas {
+            display: block;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .button-container button {
+            margin: 0 5px;
+        }
     </style>
 </head>
 
@@ -69,11 +96,10 @@
     <!-- The WASM code will resize the canvas dynamically -->
     <!-- the id is hardcoded in main.rs . so, make sure both match. -->
     <div class="canvas-container">
-        <div class="canvas-wrapper">
-            <div id="wgpu-wasm">
-                <button onclick="on_click_start()">Start</button><br>
-                <button onclick="on_click_reset()">Reset</button>
-            </div>
+            <div id="wgpu-wasm"></div>
+        <div class="button-container">
+            <button onclick="on_click_start()">Start</button>
+            <button onclick="on_click_reset()">Reset</button>
         </div>
     </div>
 
