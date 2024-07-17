@@ -31,7 +31,6 @@ pub async fn start() -> Result<(), Box<dyn Error>> {
             // extern "C" {
             //     fn render(gene : &str,pos : &str);
             // }
-            //
             #[wasm_bindgen]
             extern "C" {
                 #[wasm_bindgen(js_namespace = console)]

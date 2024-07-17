@@ -145,14 +145,21 @@ impl Application {
     #[cfg(target_arch = "wasm32")]
     pub fn check_wasm_input(&mut self) {
         use crate::js_binding::JS_BINDING;
-        let start_btn = JS_BINDING.get_state(0);
-        if start_btn {
+        if JS_BINDING.get_state(0) {
             self.start_auto_playing(0.1);
         }
 
-        let reset_btn = JS_BINDING.get_state(1);
-        if reset_btn {
+        if JS_BINDING.get_state(1) {
             self.reset_game();
+        }
+
+        if JS_BINDING.get_state(2) {
+            self.stop_game();
+        }
+
+        // let reset_btn = JS_BINDING.get_state(1);
+        if JS_BINDING.get_state(3) {
+            self.step_game();
         }
         JS_BINDING.reset();
     }
@@ -164,5 +171,15 @@ impl Application {
     #[cfg(target_arch = "wasm32")]
     pub fn reset_game(&mut self) {
         self.game_state.restart();
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn stop_game(&mut self) {
+        self.game_state.stop();
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn step_game(&mut self) {
+        self.game_state.next();
     }
 }

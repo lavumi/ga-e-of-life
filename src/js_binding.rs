@@ -33,7 +33,12 @@ impl JsBinding {
 #[cfg(target_arch = "wasm32")]
 lazy_static! {
     pub static ref JS_BINDING: Arc<JsBinding> = Arc::new(JsBinding {
-        buttons: vec![Mutex::new(false), Mutex::new(false),],
+        buttons: vec![
+            Mutex::new(false),
+            Mutex::new(false),
+            Mutex::new(false),
+            Mutex::new(false),
+        ],
     });
 }
 
@@ -41,7 +46,6 @@ lazy_static! {
 pub fn set_btn_start_game(btn_index: usize, new_state: bool) {
     JS_BINDING.set_state(btn_index, new_state);
 }
-
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {

@@ -103,9 +103,8 @@ impl GameState {
             Phase::Play => {
                 let mut stage = self.world.write_resource::<StageTick>();
                 stage.current_spent += dt;
-            }
-            // Phase::Step => {}
-            // Phase::Edit => {}
+            } // Phase::Step => {}
+              // Phase::Edit => {}
         }
     }
 
@@ -183,12 +182,6 @@ impl GameState {
     }
 
     pub fn get_text_data(&self) -> Vec<TextAttributes> {
-        // vec![TextAttributes {
-        //     content: "Welcome\nThis is Test message".to_string(),
-        //     position: [-4.5, 8.5, 1.],
-        //     size: 1.0,
-        //     color: [0.0, 0.0, 0.0],
-        // }
         vec![]
     }
 
@@ -201,6 +194,21 @@ impl GameState {
     pub fn start_auto_playing(&mut self, tick: f32) {
         let mut stage_tick = self.world.write_resource::<StageTick>();
         stage_tick.stage_tick = tick;
+        stage_tick.current_spent = 0.0;
+        self.phase = Phase::Play;
+    }
+
+    pub fn stop(&mut self) {
+        let mut stage_tick = self.world.write_resource::<StageTick>();
+        stage_tick.stage_tick = 99999.9;
+        stage_tick.current_spent = 0.0;
+        self.phase = Phase::Play;
+    }
+
+    pub fn next(&mut self) {
+        let mut stage_tick = self.world.write_resource::<StageTick>();
+        stage_tick.stage_tick = 99999.9;
+        stage_tick.current_spent = 99999.8;
         self.phase = Phase::Play;
     }
 }
