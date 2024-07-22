@@ -93,6 +93,7 @@ impl PipelineDesc<'_> {
             },
 
             multiview: None,
+            cache: None,
         });
 
         render_pipeline

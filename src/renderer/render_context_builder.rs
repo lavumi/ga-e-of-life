@@ -107,6 +107,7 @@ pub fn create_render_context(
                     } else {
                         wgpu::Limits::default()
                     },
+                    memory_hints: Default::default(),
                 },
                 // Some(&std::path::Path::new("trace")), // Trace path
                 None,
